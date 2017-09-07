@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>CAM v1.0</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <style>
+  body {
+      font: 20px sans-serif;
+      line-height: 1.8;
+      color: #f5f6f7;
+  }
+  p {font-size: 16px;}
+  .margin {margin-bottom: 15px;}
+  .bg-1 { 
+      background-color: #1abc9c; /* Green */
+      color: #ffffff;
+  }
+  .bg-2 { 
+      background-color: #474e5d; /* Dark Blue */
+      color: #ffffff;
+  }
+  .bg-3 { 
+      background-color: #ffffff; /* White */
+      color: #555555;
+  }
+  .bg-4 { 
+      background-color: #2f2f2f; /* Black Gray */
+      color: #fff;
+  }
+  .container-fluid {
+      padding-top: 20px;
+      padding-bottom: 20px;
+  }
+  /* Add a hover effect (blue shadow) */
+ img:hover {
+    box-shadow: 0 0 2px 1px rgba(0, 140, 186, 0.5);
+ }
+  </style>
+</head>
+
+<body onload="setTimeout(startCam , 1000);">
+
+<script>
+		var cnt=0;
+		function startCam() {
+			refreshCam(true)
+			setInterval(
+			 function() { refreshCam(false); } ,
+			 30000);
+		}
+		function refreshCam(forceUpd) {
+			//  _id, upd_delay
+			var views=[['', 1], ['_1', 2], ['_2', 5], ['_3', 15]]
+			var date=new Date()
+			for (var i = 0; i < views.length; i++) {
+				if(forceUpd || cnt%views[i][1]==0) {
+					//var dd = new Date(date.getTime() - 60000*(views[i][1]+1));
+					//document.getElementById('ts'+views[i][0]).innerHTML=dd.toLocaleTimeString();
+					document.getElementById('ts'+views[i][0]).innerHTML=date.toLocaleTimeString();
+					document.getElementById('cam'+views[i][0]).src='camera/outcam'+views[i][0]+'.jpg?'+date.getTime();
+				}
+			}			
+			cnt++;			
+		}
+		
+		function showalert(message,alerttype) {
+			$('#alert_placeholder').append('<div id="alertdiv" class="alert ' +  alerttype + '"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>')
+			setTimeout(function() { 
+			  $("#alertdiv").remove();
+			}, 5000);
+		  }
+
+		function save() {
+		    $.ajax({
+                type: 'POST',
+                url: 'cgi-bin/copy.sh',
+				dataType: 'json',
+                success: function(data) {
+					if(data.RC==0) {
+					  showalert("Successfully copied to: "+data.FN, "alert-success");
+					} 
+					else {
+					  showalert("Error code: "+data.RC, "alert-warning");
+					}
+                },
+				error: function(jqXHR, exception) {
+					var msg = '';
+					/*
+					if (jqXHR.status === 0) {
+						msg = 'Not connect. Verify Network.';
+					} else if (jqXHR.status == 404) {
+						msg = 'Requested page not found. [404]';
+					} else if (jqXHR.status == 500) {
+						msg = 'Internal Server Error [500].';
+					} else if (exception === 'parsererror') {
+						msg = 'Requested JSON parse failed.';
+					} else if (exception === 'timeout') {
+						msg = 'Time out error.';
+					} else if (exception === 'abort') {
+						msg = 'Ajax request aborted.';
+					} else {
+						msg = 'Uncaught Error.\n' + jqXHR.responseText;
+					}
+					*/
+					msg = '<p>status code:'+jqXHR.status+'</p><p>resp:'+jqXHR.responseText+'</p><p>Excpt:'+exception+'</p>';
+					showalert(msg,"alert-warning");
+                }
+            });
+		}
+		
+</script>
+	
+
+<div class="container-fluid bg-1 text-center">
+  <h3 class="margin" id="ts">---</h3>
+  <img src="camera/outcam.jpg" id="cam" class="img-responsive margin" style="display:inline" alt="Bird" width="640" height="480">
+  <p></p>
+  <button type="button" class="btn btn-primary" onclick="save()">Save</button>
+  <div id="alert_placeholder"></div>
+  <p></p>
+</div>
+
+<div class="container-fluid bg-3 text-center">    
+  <div class="row">
+    <div class="col-sm-4">
+      <p id="ts_1">---</p>
+	  <a target="_blank" href="camera/outcam_1.jpg">
+      <img src="" id="cam_1" class="img-responsive margin" class="img-responsive margin" style="width:100%" alt="Image">
+	  </a>
+    </div>
+    <div class="col-sm-4"> 
+      <p id="ts_2">---</p>
+	  <a target="_blank" href="camera/outcam_2.jpg">
+      <img src="" id="cam_2" class="img-responsive margin" style="width:100%" alt="Image">
+	  </a>
+    </div>
+    <div class="col-sm-4"> 
+      <p id="ts_3">---</p>
+	  <a target="_blank" href="camera/outcam_2.jpg">
+      <img src="" id = "cam_3" class="img-responsive margin" style="width:100%" alt="Image">
+	  </a>
+    </div>
+  </div>
+</div>
+
+<footer class="container-fluid bg-4 text-center">
+  <p>AR 2017</p> 
+</footer>
+
+</body>
+</html>
