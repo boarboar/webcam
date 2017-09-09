@@ -1,0 +1,304 @@
+============CLIENT================
+
+install  /usr/local/bin/mjpg_streamer and plugins
+
+http://blog.cudmore.io/post/2015/03/15/Installing-mjpg-streamer-on-a-raspberry-pi/
+
+    sudo apt-get install libjpeg8-dev imagemagick libv4l-dev 
+    ln -s /usr/include/linux/videodev2.h /usr/include/linux/videodev.h
+    wget http://sourceforge.net/code-snapshots/svn/m/mj/mjpg-streamer/code/mjpg-streamer-code-182.zip
+    unzip mjpg-streamer-code-182.zip  
+
+# build with 'make'
+    cd mjpg-streamer
+    make mjpg_streamer input_file.so input_uvc.so output_http.so output_file.so
+    # install by copying
+    sudo cp mjpg_streamer /usr/local/bin
+    sudo cp output_http.so input_file.so input_uvc.so output_file.so /usr/local/lib/
+    sudo cp -R www /usr/local/www
+
+Check the parameters of our USB camera
+
+  v4l2-ctl --list-formats  
+	
+  ioctl: VIDIOC_ENUM_FMT  
+      Index       : 0  
+      Type        : Video Capture  
+      Pixel Format: 'YUYV'  
+      Name        : YUYV  
+
+The YUYV is very important, I need to pass a -y option to jpg_streamer –input command. If you see MPEG you don’t need this -y switch.
+
+
+
+==install dav client and FS
+
+sudo apt-get install davfs
+
+sudo nano /etc/davfs2/secrets
+
+ADD
+/mnt/dav/	test	test
+
+
+sudo mkdir /mnt/dav
+sudo mount -t davfs http://192.168.1.133/camera /mnt/dav -o uid=pi,gid=pi
+
+sudo mount -t davfs http://193.70.73.242:51061/camera /mnt/dav -o uid=pi,gid=pi
+
+sudo mount -t davfs http://193.70.73.242:51061/camera /mnt/dav -o uid=pi,gid=www-data
+
+-o rw ???
+
+== TODO
+
+TODO: copy with unified name, or timestamped names???
+
+==========================
+
+nano process.sh
+
+#!/bin/bash
+echo $1 > last.txt
+timestamp=`stat -c %y $1`
+convert $1 -fill white -pointsize 24 -draw "text 15,20 '${timestamp:0:19}'" /mnt/dav/outcam.jpg 
+
+==========================
+
+cmd to run sr-treaming once a minute MJPEG (-y flag) with cyclic buffer and handler process.h
+
+cd ~/camera && /usr/local/bin/mjpg_streamer -i "/usr/local/lib/input_uvc.so -y -f 1" -o "/usr/local/lib/output_file.so -f ./ -d 60000 --size 1 --command './process.sh'" 
+
+===================== 
+add mnt cmd to/etc/rc.local
+
+add streamer start to 'pi' crontab -e at @reboot
+
+@reboot cd ~/camera && /usr/local/bin/mjpg_streamer -i "/usr/local/lib/input_uvc.so -y -f 1" -o "/usr/local/lib/output_file.so -f ./ -d 60000 --size 1 --command './process.sh'" 
+
+
+============SERVER================
+
+###install lighthttpd
+
+http://www.raspberrypi-spy.co.uk/2013/06/how-to-setup-a-web-server-on-your-raspberry-pi/
+
+sudo apt-get update
+sudo apt-get -y install lighttpd
+
+AT every updaet:
+
+sudo service lighttpd force-reload
+
+add the “Pi” user to the “www-data” group.
+
+sudo usermod -a -G www-data pi
+
+##perms:
+
+sudo chown www-data:www-data /var/www
+sudo chmod 775 /var/www
+
+DO IT FOR EVERY SUBDIR
+
+FOR EXAMPLE
+
+mkdir /var/www/html/camera
+sudo chown www-data:www-data /var/www/html/camera
+sudo chmod 775 /var/www/html/camera
+
+change index.html
+
+<html>
+<head>
+<title>CAM img</title>
+</head>
+<body>
+<h1>CAM1</h1>
+<p>latest</p>
+<img src="camera/outcam.jpg">
+</body>
+</html>
+
+
+sudo /etc/init.d/lighttpd reload
+
+===============WEBDAV 
+
+https://www.howtoforge.com/tutorial/how-to-install-webdav-with-lighttpd-on-debian-jessie/
+
+sudo apt-get -y install lighttpd lighttpd-mod-webdav apache2-utils
+
+sudo chown www-data:www-data /var/run/lighttpd/
+sudo chmod 775 /var/run/lighttpd/
+
+sudo lighty-enable-mod auth
+sudo lighty-enable-mod webdav
+
+
+sudo service lighttpd force-reload
+
+Now we create the WebDAV password file /var/www/web1/passwd.dav with the user test (the -c switch creates the file if it does not exist):
+
+htpasswd -c /var/www/html/passwd.dav test
+
+You will be asked to type in a password for the user test.
+
+(Please don't use the -c switch if /var/www/html/passwd.dav is already existing because this will recreate the file from scratch, meaning you lose all users in that file!)
+
+Now we change the permissions of the /var/www/html/passwd.dav file so that only root and the members of the www-data group can access it:
+
+sudo chown root:www-data /var/www/html/passwd.dav
+sudo chmod 640 /var/www/html/passwd.dav
+
+nano /etc/lighttpd/lighttpd.conf
+
+
+
+$HTTP["url"] =~ "^/camera($|/)" {
+webdav.activate = "enable" # allow module
+dir-listing.activate = "enable"
+webdav.is-readonly = "disable" # enable write
+webdav.sqlite-db-name = "/var/run/lighttpd/lighttpd.webdav_lock.db" # access to locaks and metadata database
+auth.backend = "htpasswd"
+auth.backend.htpasswd.userfile = "/var/www/html/passwd.dav"
+auth.require = ( "" => ( "method" => "basic",
+                             "realm" => "webdav",
+                             "require" => "valid-user" ) )
+}
+
+
+ON CLIENT FOR TEST:
+
+sudo apt-get -y install cadaver
+
+cadaver http://192.168.1.133/camera 
+
+cadaver http://193.70.73.242:51061/camera   
+
+
+============INSTALL CGI
+
+sudo lighty-enable-mod cgi
+
+##add to conf 
+
+alias.url += ( "/cgi-bin/" => "/var/www/html/cgi-bin/" )
+
+$HTTP["url"] =~ "^/" {
+   cgi.assign = ( ".sh"  => "/bin/bash" )
+}
+
+
+================================
+
+initial VPS install
+atp-get install sudo
+
+adduser -m pi
+usermod -aG sudo pi
+
+
+
+http://193.70.73.242:51061/
+
+==============================INFO for mjpeg
+
+
+---------------------------------------------------------------
+ Help for input plugin..: UVC webcam grabber
+ ---------------------------------------------------------------
+ The following parameters can be passed to this plugin:
+
+ [-d | --device ].......: video device to open (your camera)
+ [-r | --resolution ]...: the resolution of the video device,
+                          can be one of the following strings:
+                          QSIF QCIF CGA QVGA CIF VGA
+                          SVGA XGA SXGA
+                          or a custom value like the following
+                          example: 640x480
+ [-f | --fps ]..........: frames per second
+ [-y | --yuv ]..........: enable YUYV format and disable MJPEG mode
+ [-q | --quality ]......: JPEG compression quality in percent
+                          (activates YUYV format, disables MJPEG)
+ [-m | --minimum_size ].: drop frames smaller then this limit, useful
+                          if the webcam produces small-sized garbage frames
+                          may happen under low light conditions
+ [-n | --no_dynctrl ]...: do not initalize dynctrls of Linux-UVC driver
+ [-l | --led ]..........: switch the LED "on", "off", let it "blink" or leave
+                          it up to the driver using the value "auto"
+ ---------------------------------------------------------------
+
+
+---------------------------------------------------------------
+ Help for output plugin..: FILE output plugin
+ ---------------------------------------------------------------
+ The following parameters can be passed to this plugin:
+
+ [-f | --folder ]........: folder to save pictures
+ [-m | --mjpeg ]........: save the stream to an mjpeg file
+ [-d | --delay ].........: delay after saving pictures in ms
+ [-s | --size ]..........: size of ring buffer (max number of pictures to hold)
+ [-e | --exceed ]........: allow ringbuffer to exceed limit by this amount
+ [-c | --command ].......: execute command after saving picture
+
+ [-i | --input ].......: read frames from the specified input plugin
+
+ ---------------------------------------------------------------
+
+
+/* call the command if user specified one, pass current filename as argument */
+        if(command != NULL) {
+            memset(buffer1, 0, sizeof(buffer1));
+
+            /* buffer2 still contains the filename, pass it to the command as parameter */
+            snprintf(buffer1, sizeof(buffer1), "%s \"%s\"", command, buffer2);
+            DBG("calling command %s", buffer1);
+
+            /* in addition provide the filename as environment variable */
+            if((rc = setenv("MJPG_FILE", buffer2, 1)) != 0) {
+                LOG("setenv failed (return value %d)\n", rc);
+            }
+
+            /* execute the command now */
+            if((rc = system(buffer1)) != 0) {
+                LOG("command failed (return value %d)\n", rc);
+            }
+        }
+
+
+
+
+/usr/local/bin/mjpg_streamer -i "/usr/local/lib/input_uvc.so -y" -o "/usr/local/lib/output_http.so -w /usr/local/www -p 8080"
+
+/usr/local/bin/mjpg_streamer -i "/usr/local/lib/input_uvc.so -y -f 1" -o "/usr/local/lib/output_file.so -f ./ -d 60000 --size 1" 
+
+wget http://localhost:8080/?action=snapshot -O snapshot.jpg
+
+
+# convert camera.jpg -fill black -draw "rectangle 5,5 105,25" -fill white -pointsize 15 -draw "text 12,16 'AT ${timestamp:0:19}'" ./out.jpg  
+
+timestamp=`stat -c %y camera.jpg`
+convert camera.jpg -fill white -pointsize 24 -draw "text 15,20 '${timestamp:0:19}'" ./out.jpg  
+
+
+
+<html>
+<head>
+<script language="JavaScript"><!--
+function refreshIt() {
+   if (!document.images) return;
+   document.images['cam'].src = "camera/outcam.img";
+   setTimeout('refreshIt()',30000); // refresh every 30 secs
+}
+//--></script>
+<title>CAM img</title>
+</head>
+
+<body onLoad=" setTimeout('refreshIt()',30000)">
+<h1>CAMv3</h1>
+<p>latest-2</p>
+<img src="camera/outcam.jpg" name="cam">
+</body>
+</html>
+                
