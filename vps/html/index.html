@@ -112,14 +112,35 @@
             });
 		}
 		
+		function shot() {
+		    $.ajax({
+                type: 'POST',
+                url: 'cgi-bin/shot.sh',
+				dataType: 'json',
+                success: function(data) {
+					if(data.RC==0) {
+					  showalert("Shot requested", "alert-success");
+					} 
+					else {
+					  showalert("Error code: "+data.RC, "alert-warning");
+					}
+                },
+				error: function(jqXHR, exception) {
+					var msg = '';					
+					msg = '<p>status code:'+jqXHR.status+'</p><p>resp:'+jqXHR.responseText+'</p><p>Excpt:'+exception+'</p>';
+					showalert(msg,"alert-warning");
+                }
+            });
+		}
 </script>
 	
 
 <div class="container-fluid bg-1 text-center">
   <h3 class="margin" id="ts">---</h3>
-  <img src="camera/outcam.jpg" id="cam" class="img-responsive margin" style="display:inline" alt="Bird" width="640" height="480">
+  <img src="camera/outcam.jpg" id="cam" class="img-responsive margin" style="display:inline" alt="Now" width="640" height="480">
   <p></p>
-  <button type="button" class="btn btn-primary" onclick="save()">Save</button>
+  <button type="button" class="btn btn-primary" onclick="shot()">Shot</button>
+  <button type="button" class="btn" onclick="save()">Save</button>
   <div id="alert_placeholder"></div>
   <p></p>
 </div>

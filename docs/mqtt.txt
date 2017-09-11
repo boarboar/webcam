@@ -1,0 +1,20 @@
+# /etc/mosquitto/conf.d/custom.conf
+
+listener 51062
+allow_anonymous false
+password_file /etc/mosquitto/pwfil
+
+#
+sudo systemctl restart mosquitto
+
+sudo service mosquitto status
+sudo service mosquitto start
+sudo service mosquitto stop
+sudo service mosquitto restart
+
+sudo mosquitto_passwd -c /etc/mosquitto/pwfil webcam
+
+mosquitto_sub -h localhost -p 51062 -t 'webcam'
+mosquitto_pub -h localhost -p 51062 -t 'webcam' -m "Test" -u webcam -P webcam
+
+mosquitto_sub -h 193.70.73.242 -p 51062 -t 'webcam' -u webcam -P webcam
