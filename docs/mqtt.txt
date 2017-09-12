@@ -19,5 +19,6 @@ mosquitto_pub -h localhost -p 51062 -t 'webcam' -m "Test" -u webcam -P webcam
 
 mosquitto_sub -h 193.70.73.242 -p 51062 -t 'webcam' -u webcam -P webcam
 
-mqtt_exec 193.70.73.242 51062 webcam webcam webcam
+mqtt_exec.sh -l 193.70.73.242 51062 webcam webcam webcam
 
+rm: cannot remove ‘output input cmds’: No such file or directory
