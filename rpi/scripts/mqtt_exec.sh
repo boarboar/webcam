@@ -1,16 +1,14 @@
 #!/bin/bash
 ##########################
 # MQTT Shell Listen & Exec
-host=$2
-port=$3
-user=$4
-pwd=$5
-topic=$6
+host=$2;port=$3;user=$4;pwd=$5;topic=$6
+#clean="output input cmds";p="backpipe";pid=$(cat pidfile)
+p="backpipe";pid=$(cat pidfile)
 
-clean="output input cmds";p="backpipe";pid=$(cat pidfile)
 ctrl_c() {
   echo "Cleaning up..."
-  rm -f $p;rm "$clean";kill $pid 2>/dev/null
+  #rm -f $p;rm "$clean";kill $pid 2>/dev/null
+  rm -f $p;kill $pid 2>/dev/null
   if [[ "$?" -eq "0" ]];
   then
      echo "Exit success";exit 0

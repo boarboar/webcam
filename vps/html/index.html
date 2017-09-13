@@ -40,11 +40,7 @@
     box-shadow: 0 0 2px 1px rgba(0, 140, 186, 0.5);
  }
   </style>
-</head>
-
-<body onload="setTimeout(startCam , 1000);">
-
-<script>
+  <script>
 		var cnt=0;
 		function startCam() {
 			refreshCam(true)
@@ -67,11 +63,13 @@
 			cnt++;			
 		}
 		
-		function showalert(message,alerttype) {
+		function showalert(message,alerttype,opts) {
+			//opts = opts || {};
+			timeout=opts.timeout === undefined ? 1000 : opts.timeout;
 			$('#alert_placeholder').append('<div id="alertdiv" class="alert ' +  alerttype + '"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>')
 			setTimeout(function() { 
 			  $("#alertdiv").remove();
-			}, 5000);
+			}, timeout);
 		  }
 
 		function save() {
@@ -84,30 +82,13 @@
 					  showalert("Successfully copied to: "+data.FN, "alert-success");
 					} 
 					else {
-					  showalert("Error code: "+data.RC, "alert-warning");
+					  showalert("Error code: "+data.RC, "alert-warning", {timeout:5000});
 					}
                 },
 				error: function(jqXHR, exception) {
 					var msg = '';
-					/*
-					if (jqXHR.status === 0) {
-						msg = 'Not connect. Verify Network.';
-					} else if (jqXHR.status == 404) {
-						msg = 'Requested page not found. [404]';
-					} else if (jqXHR.status == 500) {
-						msg = 'Internal Server Error [500].';
-					} else if (exception === 'parsererror') {
-						msg = 'Requested JSON parse failed.';
-					} else if (exception === 'timeout') {
-						msg = 'Time out error.';
-					} else if (exception === 'abort') {
-						msg = 'Ajax request aborted.';
-					} else {
-						msg = 'Uncaught Error.\n' + jqXHR.responseText;
-					}
-					*/
 					msg = '<p>status code:'+jqXHR.status+'</p><p>resp:'+jqXHR.responseText+'</p><p>Excpt:'+exception+'</p>';
-					showalert(msg,"alert-warning");
+					showalert(msg,"alert-warning", {timeout:5000});
                 }
             });
 		}
@@ -122,19 +103,21 @@
 					  showalert("Shot requested", "alert-success");
 					} 
 					else {
-					  showalert("Error code: "+data.RC, "alert-warning");
+					  showalert("Error code: "+data.RC, "alert-warning", {timeout:5000});
 					}
                 },
 				error: function(jqXHR, exception) {
 					var msg = '';					
 					msg = '<p>status code:'+jqXHR.status+'</p><p>resp:'+jqXHR.responseText+'</p><p>Excpt:'+exception+'</p>';
-					showalert(msg,"alert-warning");
+					showalert(msg,"alert-warning",{timeout:5000});
                 }
             });
 		}
 </script>
-	
 
+</head>
+
+<body onload="setTimeout(startCam , 1000);">
 <div class="container-fluid bg-1 text-center">
   <h3 class="margin" id="ts">---</h3>
   <img src="camera/outcam.jpg" id="cam" class="img-responsive margin" style="display:inline" alt="Now" width="640" height="480">

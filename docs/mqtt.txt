@@ -21,4 +21,30 @@ mosquitto_sub -h 193.70.73.242 -p 51062 -t 'webcam' -u webcam -P webcam
 
 mqtt_exec.sh -l 193.70.73.242 51062 webcam webcam webcam
 
-rm: cannot remove ‘output input cmds’: No such file or directory
+use dist-upgrade to upgrade mosquitto for websockets
+
+http://blog.ithasu.org/2016/05/enabling-and-using-websockets-on-mosquitto/
+
+#rm: cannot remove ‘output input cmds’: No such file or directory
+
+https://www.eclipse.org/paho/clients/js/
+
+ libwebsockets3
+
+
+listener 51062
+
+listener 51063
+
+allow_anonymous false
+password_file /etc/mosquitto/pwfil
+
+log_dest stdout
+
+log_type error
+log_type warning
+log_type notice
+log_type information
+
+connection_messages true
+log_timestamp true
