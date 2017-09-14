@@ -31,6 +31,11 @@ do
 #    (bash cmds | tee out) && mosquitto_pub -h $host -t output -f out;>out
 #  fi
   echo CMD: $line 
+  if [[ "$line" -eq "SHOT" ]]; then
+    echo "DO SHOT"
+	  source process_cam.sh
+	  mosquitto_pub -h 193.70.73.242 -p 51062 -t 'webcam-resp' -m "SUCC" -u webcam -P webcam
+  fi
 done
 }
 

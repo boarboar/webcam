@@ -62,7 +62,7 @@
 		  // Once a connection has been made, make a subscription and send a message.
 		  console.log("onConnect");
 		  showalert("onConnect", "alert-success");
-		  client.subscribe("webcam");  
+		  client.subscribe("webcam-resp");  
 		}
 
 		function onFailConnect(responseObject) {
@@ -93,7 +93,7 @@
 		  }
 
 		function send() {
-		    message = new Paho.MQTT.Message("Hello");
+		    message = new Paho.MQTT.Message("SHOT");
 			message.destinationName = "webcam";
 			client.send(message);
 		}
