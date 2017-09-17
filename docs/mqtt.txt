@@ -17,6 +17,7 @@ sudo mosquitto_passwd -c /etc/mosquitto/pwfil webcam
 mosquitto_sub -h localhost -p 51062 -t 'webcam'
 mosquitto_pub -h localhost -p 51062 -t 'webcam' -m "Test" -u webcam -P webcam
 
+mosquitto_pub -h 193.70.73.242 -p 51062 -t 'webcam-resp' -m "Test" -u webcam -P webcam
 mosquitto_sub -h 193.70.73.242 -p 51062 -t 'webcam' -u webcam -P webcam
 
 mqtt_exec.sh -l 193.70.73.242 51062 webcam webcam webcam
