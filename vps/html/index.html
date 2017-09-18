@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
   <style>
   body {
       font: 20px sans-serif;
@@ -42,7 +43,49 @@
   </style>
   <script>
 		var cnt=0;
+    var client;
+		
+		// called when the client connects
+		function onConnect() {
+		  // Once a connection has been made, make a subscription and send a message.
+		  console.log("onConnect");
+		  showalert("onConnect", "alert-success");
+		  client.subscribe("webcam-resp");  
+		}
+
+		function onFailConnect(responseObject) {
+		  if (responseObject.errorCode !== 0) {
+			console.log("onFailConnect:"+responseObject.errorMessage);
+			showalert("onFailConnect:"+responseObject.errorMessage, "alert-warning", {timeout:5000});
+		  }
+		}
+		// called when the client loses its connection
+		function onConnectionLost(responseObject) {
+		  if (responseObject.errorCode !== 0) {
+			console.log("onConnectionLost:"+responseObject.errorMessage);
+			showalert("onConnectionLost:"+responseObject.errorMessage, "alert-warning");
+		  }
+		}
+
+		// called when a message arrives
+		function onMessageArrived(message) {
+		  console.log("onMessageArrived:"+message.payloadString);
+		  //showalert("onMessageArrived:"+message.payloadString, "alert-success");
+      if (message.payloadString=="SUCC") {
+        showalert("onMessageArrived:"+message.payloadString, "alert-success");
+        refreshCam(true)
+      }
+		}
+
 		function startCam() {
+      client = new Paho.MQTT.Client('193.70.73.242', 51063, "clientId");
+			// set callback handlers
+			client.onConnectionLost = onConnectionLost;
+			client.onMessageArrived = onMessageArrived;
+		
+			// connect the client
+			client.connect({onSuccess:onConnect, onFailure:onFailConnect, userName:'webcam', password:'webcam' });
+
 			refreshCam(true)
 			setInterval(
 			 function() { refreshCam(false); } ,
@@ -94,24 +137,13 @@
 		}
 		
 		function shot() {
-		    $.ajax({
-                type: 'POST',
-                url: 'cgi-bin/shot.sh',
-				dataType: 'json',
-                success: function(data) {
-					if(data.RC==0) {
-					  showalert("Shot requested", "alert-success");
-					} 
-					else {
-					  showalert("Error code: "+data.RC, "alert-warning", {timeout:5000});
-					}
-                },
-				error: function(jqXHR, exception) {
-					var msg = '';					
-					msg = '<p>status code:'+jqXHR.status+'</p><p>resp:'+jqXHR.responseText+'</p><p>Excpt:'+exception+'</p>';
-					showalert(msg,"alert-warning",{timeout:5000});
-                }
-            });
+      try {
+        message = new Paho.MQTT.Message("SHOT");
+			  message.destinationName = "webcam";
+			  client.send(message);
+      } catch(e) {
+        showalert("Send err: "+e.message, "alert-warning", {timeout:5000});
+      }
 		}
 </script>
 
