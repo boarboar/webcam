@@ -43,7 +43,7 @@
   </style>
   <script>
 		var cnt=0;
-    var client;
+        var client;
 		
 		// called when the client connects
 		function onConnect() {
@@ -56,7 +56,7 @@
 		function onFailConnect(responseObject) {
 		  if (responseObject.errorCode !== 0) {
 			console.log("onFailConnect:"+responseObject.errorMessage);
-			showalert("onFailConnect:"+responseObject.errorMessage, "alert-warning", {timeout:5000});
+			showalert("onFailConnect:"+responseObject.errorMessage, "alert-warning");
 		  }
 		}
 		// called when the client loses its connection
@@ -71,14 +71,16 @@
 		function onMessageArrived(message) {
 		  console.log("onMessageArrived:"+message.payloadString);
 		  //showalert("onMessageArrived:"+message.payloadString, "alert-success");
-      if (message.payloadString=="SUCC") {
-        showalert("onMessageArrived:"+message.payloadString, "alert-success");
-        refreshCam(true)
-      }
+          if (message.payloadString=="SUCC") {
+            //showalert("onMessageArrived:"+message.payloadString, "alert-success");
+		    showalert("Done", "alert-success");
+            //refreshCam(true)
+			setTimoeout( function() { refreshCam(false); } , 1000);
+          }
 		}
 
 		function startCam() {
-      client = new Paho.MQTT.Client('193.70.73.242', 51063, "clientId");
+            client = new Paho.MQTT.Client('193.70.73.242', 51063, "clientId");
 			// set callback handlers
 			client.onConnectionLost = onConnectionLost;
 			client.onMessageArrived = onMessageArrived;
@@ -87,9 +89,7 @@
 			client.connect({onSuccess:onConnect, onFailure:onFailConnect, userName:'webcam', password:'webcam' });
 
 			refreshCam(true)
-			setInterval(
-			 function() { refreshCam(false); } ,
-			 30000);
+			setInterval( function(){refreshCam(false);}, 30000);
 		}
 		function refreshCam(forceUpd) {
 			//  _id, upd_delay
@@ -107,8 +107,9 @@
 		}
 		
 		function showalert(message,alerttype,opts) {
-			//opts = opts || {};
-			timeout=opts.timeout === undefined ? 1000 : opts.timeout;
+			//opts = opts || {};			
+			//timeout=alerttype=="alert-warning" ? 5000 : 1000;
+			timeout=opts === undefined || opts.timeout === undefined ? (alerttype=="alert-warning" ? 5000 : 1000) : opts.timeout;
 			$('#alert_placeholder').append('<div id="alertdiv" class="alert ' +  alerttype + '"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>')
 			setTimeout(function() { 
 			  $("#alertdiv").remove();
