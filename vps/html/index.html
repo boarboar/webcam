@@ -107,6 +107,7 @@
 		}
 		
 		function showalert(message,alerttype,opts) {
+			$("#alertdiv").remove();	
 			//opts = opts || {};			
 			//timeout=alerttype=="alert-warning" ? 5000 : 1000;
 			timeout=opts === undefined || opts.timeout === undefined ? (alerttype=="alert-warning" ? 5000 : 1000) : opts.timeout;
@@ -139,11 +140,12 @@
 		
 		function shot() {
       try {
+	    showalert("Shooting...", "alert-success", {timeout:10000}); 		    
         message = new Paho.MQTT.Message("SHOT");
 			  message.destinationName = "webcam";
 			  client.send(message);
       } catch(e) {
-        showalert("Send err: "+e.message, "alert-warning", {timeout:5000});
+		showalert("Send err: "+e.message, "alert-warning", {timeout:5000});
       }
 		}
 </script>

@@ -1,7 +1,9 @@
 #!/bin/bash
 ##########################
 # MQTT Shell Listen & Exec
-host=$2;port=$3;user=$4;pwd=$5;topic=$6
+host=$2;port=$3;user=$4;pwd=$5;
+topic_in="webcam"
+topic_out="webcam_resp"
 #clean="output input cmds";p="backpipe";pid=$(cat pidfile)
 p="backpipe";pid=$(cat pidfile)
 
@@ -19,7 +21,7 @@ ctrl_c() {
 
 listen(){
 ([ ! -p "$p" ]) && mkfifo $p
-(mosquitto_sub -h $host -p $port -u $user -P $pwd -t $topic >$p 2>/dev/null) &
+(mosquitto_sub -h $host -p $port -u $user -P $pwd -t $topic_in >$p 2>/dev/null) &
 echo "$!" > pidfile
 while read line <$p
 do
@@ -32,9 +34,9 @@ do
 #  fi
   echo CMD: $line 
   if [[ "$line" -eq "SHOT" ]]; then
-    echo "DO SHOT"
-	  source process_cam.sh
-	  mosquitto_pub -h 193.70.73.242 -p 51062 -t 'webcam-resp' -m "SUCC" -u webcam -P webcam
+    #echo "DO SHOT"
+	source ./process_cam.sh 2>&1
+	mosquitto_pub -h $host -p $port -t $topic_out -m "SUCC" -u $user -P $pwd
   fi
 done
 }
