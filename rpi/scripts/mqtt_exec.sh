@@ -3,7 +3,7 @@
 # MQTT Shell Listen & Exec
 host=$2;port=$3;user=$4;pwd=$5;
 topic_in="webcam"
-topic_out="webcam_resp"
+topic_out="webcam-resp"
 #clean="output input cmds";p="backpipe";pid=$(cat pidfile)
 p="backpipe";pid=$(cat pidfile)
 
@@ -35,7 +35,8 @@ do
   echo CMD: $line 
   if [[ "$line" -eq "SHOT" ]]; then
     #echo "DO SHOT"
-	source ./process_cam.sh 2>&1
+	#source ./process_cam.sh 2>&1
+	./process_cam.sh 2>&1
 	mosquitto_pub -h $host -p $port -t $topic_out -m "SUCC" -u $user -P $pwd
   fi
 done
