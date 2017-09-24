@@ -36,7 +36,8 @@ do
   if [[ "$line" -eq "SHOT" ]]; then
     #echo "DO SHOT"
 	#source ./process_cam.sh 2>&1
-	./process_cam.sh 2>&1
+	#./process_cam.sh 2>&1
+	source ./do_shot.sh 2>&1
 	mosquitto_pub -h $host -p $port -t $topic_out -m "SUCC" -u $user -P $pwd
   fi
 done
