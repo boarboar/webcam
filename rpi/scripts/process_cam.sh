@@ -15,7 +15,7 @@ fi
 #timestamp=`stat -c %y snapshot.jpg`
 #convert snapshot.jpg -fill white -pointsize 24 -draw "text 15,20 '${timestamp:0:19}'" /mnt/dav/outcam.tmp
 
-raspistill -n -hf -vf -ae 128 -a 12 -o snapshot.jpg
+raspistill -md 4 -n -hf -vf -ae 128 -a 12 -o snapshot.jpg
 
 #every 30th run
 if ! ((cnt % 30)); then
