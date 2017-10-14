@@ -99,7 +99,7 @@
 				if(forceUpd || cnt%views[i][1]==0) {
 					//var dd = new Date(date.getTime() - 60000*(views[i][1]+1));
 					//document.getElementById('ts'+views[i][0]).innerHTML=dd.toLocaleTimeString();
-					document.getElementById('ts'+views[i][0]).innerHTML=date.toLocaleTimeString();
+					//document.getElementById('ts'+views[i][0]).innerHTML=date.toLocaleTimeString();
 					document.getElementById('cam'+views[i][0]).src='camera/outcam'+views[i][0]+'.jpg?'+date.getTime();
 				}
 			}			
@@ -154,7 +154,6 @@
 
 <body onload="setTimeout(startCam , 1000);">
 <div class="container-fluid bg-1 text-center">
-  <h3 class="margin" id="ts">---</h3>
   <img src="camera/outcam.jpg" id="cam" class="img-responsive margin" style="display:inline" alt="Now" width="640" height="480">
   <p></p>
   <button type="button" class="btn btn-primary" onclick="shot()">Shot</button>
@@ -166,19 +165,16 @@
 <div class="container-fluid bg-3 text-center">    
   <div class="row">
     <div class="col-sm-4">
-      <p id="ts_1">---</p>
 	  <a target="_blank" href="camera/outcam_1.jpg">
       <img src="" id="cam_1" class="img-responsive margin" class="img-responsive margin" style="width:100%" alt="Image">
 	  </a>
     </div>
     <div class="col-sm-4"> 
-      <p id="ts_2">---</p>
 	  <a target="_blank" href="camera/outcam_2.jpg">
       <img src="" id="cam_2" class="img-responsive margin" style="width:100%" alt="Image">
 	  </a>
     </div>
     <div class="col-sm-4"> 
-      <p id="ts_3">---</p>
 	  <a target="_blank" href="camera/outcam_2.jpg">
       <img src="" id = "cam_3" class="img-responsive margin" style="width:100%" alt="Image">
 	  </a>
