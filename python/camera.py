@@ -28,6 +28,32 @@ class StreamClientThread(threading.Thread):
     def lock(self) : self.__lock.acquire()
     def unlock(self) : self.__lock.release()
 
+    def contoursCanny(self, img_g):
+        img_cont = cv2.bilateralFilter(img_g, 11, 17, 17)
+        edged = cv2.Canny(img_cont, 30, 200)
+        # note - findCounters is destructive, so it will destroy edge !
+        # _, contours, _ = cv2.findContours(edged.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        _, contours, _ = cv2.findContours(edged, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        #_, contours, _ = cv2.findContours(edged, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        return contours
+
+    def contoursBfilt(self, img_g):
+        img_cont = cv2.bilateralFilter(img_g, 11, 17, 17)
+        ret, thresh = cv2.threshold(img_cont, 127, 255, cv2.THRESH_BINARY)
+        _, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        return contours
+
+    def contoursStd(self, img_g):
+        ret, thresh = cv2.threshold(img_g, 127, 255, cv2.THRESH_BINARY)
+        _, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        ###ret, thresh = cv2.threshold(img_cont, 127, 255, cv2.THRESH_BINARY_INV)
+        ###ret, thresh = cv2.threshold(img_cont, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        ###thresh = cv2.adaptiveThreshold(img_cont, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+        ###thresh = cv2.adaptiveThreshold(img_cont, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
+        ###_, contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)    return contours
+        return contours
+
     def loadimg(self):
         if self.stream is None : return None
         while True:
@@ -44,22 +70,9 @@ class StreamClientThread(threading.Thread):
                     #img = cv2.rectangle(img, (w/3, h/3), (w*2/3, h*2/3), (0, 255, 0), 3)
                     #cv2.putText(img, 'CAM1', (0, h), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 255, 255), 2, cv2.LINE_AA)
                     img_cont = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                    img_cont = cv2.bilateralFilter(img_cont, 11, 17, 17)
-                    #ret, thresh = cv2.threshold(img_cont, 127, 255, cv2.THRESH_BINARY)
-                    #_, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-                    ###ret, thresh = cv2.threshold(img_cont, 127, 255, cv2.THRESH_BINARY_INV)
-                    ###ret, thresh = cv2.threshold(img_cont, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-                    ###thresh = cv2.adaptiveThreshold(img_cont, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-                    ###thresh = cv2.adaptiveThreshold(img_cont, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
-                    ###_, contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    contours = self.contoursBfilt(img_cont)
 
-                    edged = cv2.Canny(img_cont, 30, 200)
-                    #_, contours, _ = cv2.findContours(edged.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                    _, contours, _ = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                    #_, contours, _ = cv2.findContours(edged, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-                    # note - findCounters is destructive, so it will destroy edge !
-                    #contours = sorted(contours, key=cv2.contourArea, reverse=True)[:5]
 
                     cntf=[]
                     for cnt in contours:
@@ -69,22 +82,29 @@ class StreamClientThread(threading.Thread):
                         extent = float(area) / rect_area
                         hull = cv2.convexHull(cnt)
                         hull_area = cv2.contourArea(hull)
+                        dim = np.sqrt(area)
                         if rect_area > 0 :
                             solidity1 = float(hull_area) / rect_area
                         else :
                             solidity1 = 1
-                        if extent > 0.01 and w>2 and h>2 and (w>10 or h>10):
+                        if w > 2 and h > 2 and (w > 10 or h > 10):
+                        #if dim/max(w,h) > 0.15 and w > 2 and h > 2 and (w > 10 or h > 10):
+                        #if extent > 0.01 and w>2 and h>2 and (w>10 or h>10):
                         #if solidity1 > 0.7 and w>2 and h>2:
+                            #peri = cv2.arcLength(cnt, True)
+                            #cnt = cv2.approxPolyDP(cnt, 0.02 * peri, True)
                             cntf.append(cnt)
 
-                    contours=cntf
+                    #contours=cntf
+
+                    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
 
                     print("found %s countours" % (len(contours)))
 
                     #for c in contours :
                     #    print(c)
 
-                    cv2.drawContours(img, contours, -1, (0, 255, 0), 3)
+                    cv2.drawContours(img, contours, -1, (0, 255, 0), 1)
 
                     return img
                     #return gray
@@ -137,6 +157,7 @@ class StreamClientThread(threading.Thread):
                 #print "Fire event"
                 event = RedrawEvent(bmp=self.bmp)
                 wx.PostEvent(self.wnd, event)
+                time.sleep(0.1)
                 self.frame = self.loadimg()
 
         print "Streamer stopped"
@@ -213,8 +234,8 @@ class CameraPanel(wx.Window):
             if self.isDebug :
                 self.streamthread =StreamClientThread(self,
                                                 #"http://88.53.197.250/axis-cgi/mjpg/video.cgi?resolution=320x240",
-                                                #"http://iris.not.iac.es/axis-cgi/mjpg/video.cgi?resolution=320x240",
-                                                "http://webcam.st-malo.com/axis-cgi/mjpg/video.cgi?resolution=352x288",
+                                                "http://iris.not.iac.es/axis-cgi/mjpg/video.cgi?resolution=320x240",
+                                                #"http://webcam.st-malo.com/axis-cgi/mjpg/video.cgi?resolution=352x288",
                                                   {'http': 'proxy.reksoft.ru:3128'})
             else :
                 self.streamthread =StreamClientThread(self, 'http://192.168.1.132:8080/?action=stream', None)
