@@ -54,6 +54,72 @@ class StreamClientThread(threading.Thread):
         ###_, contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)    return contours
         return contours
 
+    def edges(self, img, gray):
+        minLineLength = 20
+        maxLineGap = 1
+
+        #gray = cv2.bilateralFilter(gray, 11, 17, 17) #?
+        edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+        #edges = cv2.Canny(gray, 80, 120)
+        #edges = cv2.Canny(gray, 30, 200)
+        lines = cv2.HoughLinesP(edges, 1, np.pi / 2, 1, None, minLineLength, maxLineGap)
+        #lines = cv2.HoughLines(edges, 1, np.pi / 2, 2)
+
+        if lines is None or lines[0] is None:
+            return
+
+        for x1, y1, x2, y2 in lines[0]:
+            cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+        """
+        for rho, theta in lines[0]:
+            a = np.cos(theta)
+            b = np.sin(theta)
+            x0 = a * rho
+            y0 = b * rho
+            x1 = int(x0 + 1000 * (-b))
+            y1 = int(y0 + 1000 * (a))
+            x2 = int(x0 - 1000 * (-b))
+            y2 = int(y0 - 1000 * (a))
+
+            cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        """
+
+        return
+
+    def countoursProcess(self, img, contours):
+        cntf = []
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            x, y, w, h = cv2.boundingRect(cnt)
+            rect_area = w * h
+            extent = float(area) / rect_area
+            hull = cv2.convexHull(cnt)
+            hull_area = cv2.contourArea(hull)
+            dim = np.sqrt(area)
+            if rect_area > 0:
+                solidity1 = float(hull_area) / rect_area
+            else:
+                solidity1 = 1
+            if w > 2 and h > 2 and (w > 10 or h > 10):
+                # if dim/max(w,h) > 0.15 and w > 2 and h > 2 and (w > 10 or h > 10):
+                # if extent > 0.01 and w>2 and h>2 and (w>10 or h>10):
+                # if solidity1 > 0.7 and w>2 and h>2:
+                # peri = cv2.arcLength(cnt, True)
+                # cnt = cv2.approxPolyDP(cnt, 0.02 * peri, True)
+                cntf.append(cnt)
+
+        # contours=cntf
+
+        contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
+
+        print("found %s countours" % (len(contours)))
+
+        # for c in contours :
+        #    print(c)
+        cv2.drawContours(img, contours, -1, (0, 255, 0), 1)
+        return
+
     def loadimg(self):
         if self.stream is None : return None
         while True:
@@ -69,42 +135,13 @@ class StreamClientThread(threading.Thread):
                     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                     #img = cv2.rectangle(img, (w/3, h/3), (w*2/3, h*2/3), (0, 255, 0), 3)
                     #cv2.putText(img, 'CAM1', (0, h), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 255, 255), 2, cv2.LINE_AA)
-                    img_cont = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-                    contours = self.contoursBfilt(img_cont)
+                    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+                    #contours = self.contoursBfilt(gray)
+                    #self.countoursProcess(img, contours)
 
-                    cntf=[]
-                    for cnt in contours:
-                        area = cv2.contourArea(cnt)
-                        x, y, w, h = cv2.boundingRect(cnt)
-                        rect_area = w * h
-                        extent = float(area) / rect_area
-                        hull = cv2.convexHull(cnt)
-                        hull_area = cv2.contourArea(hull)
-                        dim = np.sqrt(area)
-                        if rect_area > 0 :
-                            solidity1 = float(hull_area) / rect_area
-                        else :
-                            solidity1 = 1
-                        if w > 2 and h > 2 and (w > 10 or h > 10):
-                        #if dim/max(w,h) > 0.15 and w > 2 and h > 2 and (w > 10 or h > 10):
-                        #if extent > 0.01 and w>2 and h>2 and (w>10 or h>10):
-                        #if solidity1 > 0.7 and w>2 and h>2:
-                            #peri = cv2.arcLength(cnt, True)
-                            #cnt = cv2.approxPolyDP(cnt, 0.02 * peri, True)
-                            cntf.append(cnt)
-
-                    #contours=cntf
-
-                    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
-
-                    print("found %s countours" % (len(contours)))
-
-                    #for c in contours :
-                    #    print(c)
-
-                    cv2.drawContours(img, contours, -1, (0, 255, 0), 1)
+                    self.edges(img, gray)
 
                     return img
                     #return gray
@@ -233,8 +270,8 @@ class CameraPanel(wx.Window):
             self.isPlaying=True
             if self.isDebug :
                 self.streamthread =StreamClientThread(self,
-                                                #"http://88.53.197.250/axis-cgi/mjpg/video.cgi?resolution=320x240",
-                                                "http://iris.not.iac.es/axis-cgi/mjpg/video.cgi?resolution=320x240",
+                                                "http://88.53.197.250/axis-cgi/mjpg/video.cgi?resolution=320x240",
+                                                #"http://iris.not.iac.es/axis-cgi/mjpg/video.cgi?resolution=320x240",
                                                 #"http://webcam.st-malo.com/axis-cgi/mjpg/video.cgi?resolution=352x288",
                                                   {'http': 'proxy.reksoft.ru:3128'})
             else :
