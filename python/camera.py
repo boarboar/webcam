@@ -59,18 +59,26 @@ class StreamClientThread(threading.Thread):
         maxLineGap = 1
 
         #gray = cv2.bilateralFilter(gray, 11, 17, 17) #?
-        edges = cv2.Canny(gray, 50, 150, apertureSize=3)
-        #edges = cv2.Canny(gray, 80, 120)
+        #edges = cv2.Canny(gray, 50, 150, apertureSize=7)
+        edges = cv2.Canny(gray, 80, 120)
         #edges = cv2.Canny(gray, 30, 200)
-        lines = cv2.HoughLinesP(edges, 1, np.pi / 2, 1, None, minLineLength, maxLineGap)
+        lines = cv2.HoughLinesP(edges, 1, np.pi / 2, 2, None, minLineLength, maxLineGap)
         #lines = cv2.HoughLines(edges, 1, np.pi / 2, 2)
 
+
+        for line in lines:
+            for x1, y1, x2, y2 in line:
+                if x1==x2 :
+                    cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+        """
         if lines is None or lines[0] is None:
             return
-
+        
         for x1, y1, x2, y2 in lines[0]:
             cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
-
+         
+         """
         """
         for rho, theta in lines[0]:
             a = np.cos(theta)
