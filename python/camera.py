@@ -23,6 +23,10 @@ class StreamClientThread(threading.Thread):
         self.__stop = False
         self.stream=None
         self.bytes=''
+        self.frame=None
+        self.conts = None
+        self.bmp = None
+        self.bmp_c = None
         self.setDaemon(1)
     def stop(self) : self.__stop=True
     def lock(self) : self.__lock.acquire()
@@ -56,44 +60,51 @@ class StreamClientThread(threading.Thread):
 
     def edges(self, img, gray):
         minLineLength = 20
-        maxLineGap = 1
+        maxLineGap = 2
 
         #gray = cv2.bilateralFilter(gray, 11, 17, 17) #?
-        #edges = cv2.Canny(gray, 50, 150, apertureSize=7)
-        edges = cv2.Canny(gray, 80, 120)
+        edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+        #edges = cv2.Canny(gray, 80, 120)
         #edges = cv2.Canny(gray, 30, 200)
-        lines = cv2.HoughLinesP(edges, 1, np.pi / 2, 2, None, minLineLength, maxLineGap)
-        #lines = cv2.HoughLines(edges, 1, np.pi / 2, 2)
 
+
+        #lines = cv2.HoughLinesP(edges, 1, np.pi / 2, 1, None, minLineLength, maxLineGap)
+        lines = cv2.HoughLinesP(edges, 1, np.pi / 180,
+                                threshold=5, minLineLength=20, maxLineGap=5)
+        
+        if lines is None:
+            return img, cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
+
+        print("Lines : %s" % (len(lines)))
 
         for line in lines:
             for x1, y1, x2, y2 in line:
-                if x1==x2 :
+                #if abs(x1-x2)<4 :
+                if True :
                     cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
+
         """
-        if lines is None or lines[0] is None:
+        lines = cv2.HoughLines(edges, 1, np.pi / 180, 100)
+
+        if lines is None:
             return
-        
-        for x1, y1, x2, y2 in lines[0]:
-            cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
-         
-         """
-        """
-        for rho, theta in lines[0]:
-            a = np.cos(theta)
-            b = np.sin(theta)
-            x0 = a * rho
-            y0 = b * rho
-            x1 = int(x0 + 1000 * (-b))
-            y1 = int(y0 + 1000 * (a))
-            x2 = int(x0 - 1000 * (-b))
-            y2 = int(y0 - 1000 * (a))
 
-            cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-        """
+        for line in lines:
+            for rho, theta in line:
+                a = np.cos(theta)
+                b = np.sin(theta)
+                x0 = a * rho
+                y0 = b * rho
+                x1 = int(x0 + 1000 * (-b))
+                y1 = int(y0 + 1000 * (a))
+                x2 = int(x0 - 1000 * (-b))
+                y2 = int(y0 - 1000 * (a))
 
-        return
+                cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        """
+        return img, cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
 
     def countoursProcess(self, img, contours):
         cntf = []
@@ -149,9 +160,9 @@ class StreamClientThread(threading.Thread):
                     #contours = self.contoursBfilt(gray)
                     #self.countoursProcess(img, contours)
 
-                    self.edges(img, gray)
+                    img, conts = self.edges(img, gray)
 
-                    return img
+                    return img, conts
                     #return gray
             except Exception as e:
                 print('failed to read')
@@ -181,12 +192,13 @@ class StreamClientThread(threading.Thread):
                 print("timeout")
                 continue
 
-            self.frame = self.loadimg()
+            self.frame, self.conts = self.loadimg()
 
             if self.frame is not None:
                 print(self.frame.shape)
                 self.height, self.width = self.frame.shape[:2]
                 self.bmp = wx.BitmapFromBuffer(self.width, self.height, self.frame)
+                self.bmp_c = wx.BitmapFromBuffer(self.width, self.height, self.frame)
 
             else:
                 print "Error no webcam image"
@@ -198,12 +210,13 @@ class StreamClientThread(threading.Thread):
                 #self.frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
                 self.lock()
                 self.bmp.CopyFromBuffer(self.frame)
+                self.bmp_c.CopyFromBuffer(self.conts)
                 self.unlock()
                 #print "Fire event"
-                event = RedrawEvent(bmp=self.bmp)
+                event = RedrawEvent(bmp=self.bmp,  bmp_c=self.bmp_c)
                 wx.PostEvent(self.wnd, event)
                 time.sleep(0.1)
-                self.frame = self.loadimg()
+                self.frame, self.conts = self.loadimg()
 
         print "Streamer stopped"
 
@@ -211,16 +224,17 @@ class StreamClientThread(threading.Thread):
 class CameraPanel(wx.Window):
     " camera panel"
     def __init__(self, parent):
-        wx.Window.__init__(self, parent, wx.ID_ANY, style=wx.SIMPLE_BORDER, size=(160,120))
+        wx.Window.__init__(self, parent, wx.ID_ANY, style=wx.SIMPLE_BORDER, size=(640, 480))
 
         self.isDebug=True
 
-
-        #self.imgSizer = (480, 360)
-        self.imgSizer = (640, 480)
+        self.imgSizer = (480, 360)
+        #self.imgSizer = (640, 480)
         self.pnl = wx.Panel(self, -1)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.pnl, 1, flag=wx.EXPAND)
+        self.pnl_c = wx.Panel(self, -1)
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.pnl_c, 1, flag=wx.EXPAND, border=5)
+        sizer.Add(self.pnl, 1, flag=wx.EXPAND, border=5)
         self.SetSizer(sizer)
 
         #self.vbox = wx.BoxSizer(wx.VERTICAL)
@@ -228,6 +242,10 @@ class CameraPanel(wx.Window):
         self.image = wx.EmptyImage(self.imgSizer[0],self.imgSizer[1])
         self.imageBit = wx.BitmapFromImage(self.image)
         self.staticBit = wx.StaticBitmap(self.pnl, wx.ID_ANY, self.imageBit)
+
+        self.image_c = wx.EmptyImage(self.imgSizer[0], self.imgSizer[1])
+        self.imageBit_c = wx.BitmapFromImage(self.image_c)
+        self.staticBit_c = wx.StaticBitmap(self.pnl_c, wx.ID_ANY, self.imageBit_c)
 
         #self.vbox.Add(self.staticBit)
 
@@ -254,10 +272,14 @@ class CameraPanel(wx.Window):
         Size  = self.pnl.ClientSize
         self.streamthread.lock()
         image=wx.ImageFromBitmap(evt.bmp)
+        image_c = wx.ImageFromBitmap(evt.bmp_c)
         self.streamthread.unlock()
         image = image.Scale(Size[0], Size[1], wx.IMAGE_QUALITY_HIGH)
         bmp = wx.BitmapFromImage(image)
         self.staticBit.SetBitmap(bmp)
+        image_c = image_c.Scale(Size[0], Size[1], wx.IMAGE_QUALITY_HIGH)
+        bmp_c = wx.BitmapFromImage(image_c)
+        self.staticBit_c.SetBitmap(bmp_c)
         self.Refresh()
 
 
@@ -278,10 +300,10 @@ class CameraPanel(wx.Window):
             self.isPlaying=True
             if self.isDebug :
                 self.streamthread =StreamClientThread(self,
-                                                "http://88.53.197.250/axis-cgi/mjpg/video.cgi?resolution=320x240",
-                                                #"http://iris.not.iac.es/axis-cgi/mjpg/video.cgi?resolution=320x240",
+                                                #"http://88.53.197.250/axis-cgi/mjpg/video.cgi?resolution=320x240",
+                                                "http://iris.not.iac.es/axis-cgi/mjpg/video.cgi?resolution=320x240",
                                                 #"http://webcam.st-malo.com/axis-cgi/mjpg/video.cgi?resolution=352x288",
                                                   {'http': 'proxy.reksoft.ru:3128'})
             else :
-                self.streamthread =StreamClientThread(self, 'http://192.168.1.132:8080/?action=stream', None)
+                self.streamthread =StreamClientThread(self, 'http://192.168.1.120:8080/?action=stream', None)
             self.streamthread.start()
