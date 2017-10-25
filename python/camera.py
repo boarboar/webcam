@@ -69,8 +69,8 @@ class StreamClientThread(threading.Thread):
 
 
         #lines = cv2.HoughLinesP(edges, 1, np.pi / 2, 1, None, minLineLength, maxLineGap)
-        lines = cv2.HoughLinesP(edges, 1, np.pi / 180,
-                                threshold=5, minLineLength=20, maxLineGap=5)
+        lines = cv2.HoughLinesP(edges, 1, np.pi / 1,
+                                threshold=10, minLineLength=20, maxLineGap=5)
         
         if lines is None:
             return img, cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
@@ -79,7 +79,7 @@ class StreamClientThread(threading.Thread):
 
         for line in lines:
             for x1, y1, x2, y2 in line:
-                #if abs(x1-x2)<4 :
+                #if abs(x1-x2)<10 :
                 if True :
                     cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
@@ -226,7 +226,7 @@ class CameraPanel(wx.Window):
     def __init__(self, parent):
         wx.Window.__init__(self, parent, wx.ID_ANY, style=wx.SIMPLE_BORDER, size=(640, 480))
 
-        self.isDebug=True
+        self.isDebug=False
 
         self.imgSizer = (480, 360)
         #self.imgSizer = (640, 480)
