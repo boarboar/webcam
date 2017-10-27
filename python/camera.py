@@ -58,9 +58,15 @@ class StreamClientThread(threading.Thread):
         ###_, contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)    return contours
         return contours
 
-    def edges(self, img, gray):
+    def edges(self, img):
+        h, w = img.shape[:2]
+        low_bound = 0.1
+        hi_bound = 0.4
+
         minLineLength = 20
         maxLineGap = 2
+
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         #gray = cv2.bilateralFilter(gray, 11, 17, 17) #?
         edges = cv2.Canny(gray, 50, 150, apertureSize=3)
@@ -70,18 +76,27 @@ class StreamClientThread(threading.Thread):
 
         #lines = cv2.HoughLinesP(edges, 1, np.pi / 2, 1, None, minLineLength, maxLineGap)
         lines = cv2.HoughLinesP(edges, 1, np.pi / 1,
-                                threshold=10, minLineLength=20, maxLineGap=5)
+                                threshold=10, minLineLength=20, maxLineGap=12)
         
         if lines is None:
             return img, cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
 
+
         print("Lines : %s" % (len(lines)))
+
+        y_lim_1 = int(h * (1-low_bound))
+        y_lim_0 = int(h * (1 - hi_bound))
+        cv2.line(img, (0, y_lim_1), (w-1, y_lim_1), (0, 0, 255), 1)
+        cv2.line(img, (0, y_lim_0), (w - 1, y_lim_0), (0, 0, 255), 1)
 
         for line in lines:
             for x1, y1, x2, y2 in line:
-                #if abs(x1-x2)<10 :
-                if True :
-                    cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 3)
+
+        for line in lines:
+            for x1, y1, x2, y2 in line:
+                if abs(y1-y2)>40 and abs(x1-x2)*100/abs(y1-y2)<5 and min(y1,y2)<y_lim_1 and max(y1,y2)>y_lim_0:  #5% inclination
+                    cv2.line(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
 
 
         """
@@ -155,12 +170,12 @@ class StreamClientThread(threading.Thread):
                     #img = cv2.rectangle(img, (w/3, h/3), (w*2/3, h*2/3), (0, 255, 0), 3)
                     #cv2.putText(img, 'CAM1', (0, h), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 255, 255), 2, cv2.LINE_AA)
 
-                    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                    #gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
                     #contours = self.contoursBfilt(gray)
                     #self.countoursProcess(img, contours)
 
-                    img, conts = self.edges(img, gray)
+                    img, conts = self.edges(img)
 
                     return img, conts
                     #return gray
@@ -226,7 +241,7 @@ class CameraPanel(wx.Window):
     def __init__(self, parent):
         wx.Window.__init__(self, parent, wx.ID_ANY, style=wx.SIMPLE_BORDER, size=(640, 480))
 
-        self.isDebug=False
+        self.isDebug = True
 
         self.imgSizer = (480, 360)
         #self.imgSizer = (640, 480)
