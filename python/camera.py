@@ -60,8 +60,8 @@ class StreamClientThread(threading.Thread):
 
     def edges(self, img):
         h, w = img.shape[:2]
-        low_bound = 0.1
-        hi_bound = 0.4
+        low_bound = 0.05
+        hi_bound = 0.5
 
         minLineLength = 20
         maxLineGap = 2
@@ -75,9 +75,9 @@ class StreamClientThread(threading.Thread):
 
 
         #lines = cv2.HoughLinesP(edges, 1, np.pi / 2, 1, None, minLineLength, maxLineGap)
-        lines = cv2.HoughLinesP(edges, 1, np.pi / 1,
-                                threshold=10, minLineLength=20, maxLineGap=12)
-        
+        lines = cv2.HoughLinesP(edges, 1, np.pi / 180,
+                                threshold=60, minLineLength=40, maxLineGap=8)
+
         if lines is None:
             return img, cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
 
@@ -95,7 +95,7 @@ class StreamClientThread(threading.Thread):
 
         for line in lines:
             for x1, y1, x2, y2 in line:
-                if abs(y1-y2)>40 and abs(x1-x2)*100/abs(y1-y2)<5 and min(y1,y2)<y_lim_1 and max(y1,y2)>y_lim_0:  #5% inclination
+                if abs(y1-y2)>40 and abs(x1-x2)*100/abs(y1-y2)<10 and min(y1,y2)<y_lim_1 and max(y1,y2)>y_lim_0:  #5% inclination
                     cv2.line(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
 
 
@@ -241,7 +241,7 @@ class CameraPanel(wx.Window):
     def __init__(self, parent):
         wx.Window.__init__(self, parent, wx.ID_ANY, style=wx.SIMPLE_BORDER, size=(640, 480))
 
-        self.isDebug = True
+        self.isDebug = False
 
         self.imgSizer = (480, 360)
         #self.imgSizer = (640, 480)
