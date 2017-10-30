@@ -14,7 +14,7 @@ CameraEvent, EVT_CAMERA_EVENT = wx.lib.newevent.NewEvent()
 RedrawEvent, EVT_RDR_EVENT = wx.lib.newevent.NewEvent()
 
 class StreamClientThread(threading.Thread):
-    def __init__(self, wnd, url, proxysetting):
+    def __init__(self, wnd, url, proxysetting, thr_type=1):
         threading.Thread.__init__(self)
         self.__lock=threading.Lock()
         self.wnd=wnd
@@ -27,7 +27,12 @@ class StreamClientThread(threading.Thread):
         self.conts = None
         self.bmp = None
         self.bmp_c = None
+        self.thr_type = thr_type  # static
         self.setDaemon(1)
+
+    def SetThresholdType(self, tt) :
+        self.thr_type = tt
+
     def stop(self) : self.__stop=True
     def lock(self) : self.__lock.acquire()
     def unlock(self) : self.__lock.release()
@@ -68,8 +73,23 @@ class StreamClientThread(threading.Thread):
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+        low_thresh, high_thresh = 50, 150
+        if self.thr_type == 2:
+            high_thresh, thresh_im = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            low_thresh = 0.5 * high_thresh
+        elif self.thr_type == 3:
+            # auto canny
+            sigma = 0.33
+            v = np.median(gray)
+            # apply automatic Canny edge detection using the computed median
+            low_thresh = int(max(0, (1.0 - sigma) * v))
+            high_thresh = int(min(255, (1.0 + sigma) * v))
+
+        print("Thresholds %s : %s %s" % (self.thr_type, low_thresh, high_thresh))
+
         #gray = cv2.bilateralFilter(gray, 11, 17, 17) #?
-        edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+        #edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+        edges = cv2.Canny(gray, low_thresh, high_thresh, apertureSize=3)
         #edges = cv2.Canny(gray, 80, 120)
         #edges = cv2.Canny(gray, 30, 200)
 
@@ -195,7 +215,7 @@ class StreamClientThread(threading.Thread):
 
         while not self.__stop:
             time.sleep(5.0)
-            print 'opening stream...'
+            print('opening stream at %s ...' % (self.__url))
             self.stream=None
             try:
                 self.stream=urllib2.urlopen(self.__url, timeout=20.0)
@@ -270,10 +290,21 @@ class CameraPanel(wx.Window):
         self.isPlaying = False
         self.staticBit.Bind(wx.EVT_LEFT_UP, self.OnMouseLeftUp)
 
+        self.thr_type = 1  # static
+        self.streamthread = None
+
         #self.SetSize(self.imgSizer)
         #self.pnl.SetSizer(self.vbox)
         #self.vbox.Fit(self)
         #self.Show()
+
+    def SetThresholdType(self, tt) :
+        self.thr_type = tt
+        if self.streamthread is not None :
+            self.streamthread.SetThresholdType(self.thr_type)
+
+    def SetSrcType(self, st):
+        self.isDebug = st==2
 
     def onRedrawEvent(self, evt):
         #print "Update"
@@ -311,6 +342,7 @@ class CameraPanel(wx.Window):
         if self.isPlaying :
             self.isPlaying=False
             self.streamthread.stop()
+            self.streamthread = None
         else :
             self.isPlaying=True
             if self.isDebug :
@@ -321,4 +353,5 @@ class CameraPanel(wx.Window):
                                                   {'http': 'proxy.reksoft.ru:3128'})
             else :
                 self.streamthread =StreamClientThread(self, 'http://192.168.1.120:8080/?action=stream', None)
+            self.streamthread.SetThresholdType(self.thr_type)
             self.streamthread.start()
