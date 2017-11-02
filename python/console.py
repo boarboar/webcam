@@ -14,8 +14,8 @@ class MyForm(wx.Frame):
         self.but_t1 = wx.RadioButton(panel, wx.ID_ANY, "Fix", style=wx.RB_GROUP)
         self.but_t2 = wx.RadioButton(panel, wx.ID_ANY, "Auto2")
         self.but_t3 = wx.RadioButton(panel, wx.ID_ANY, "Auto3")
-        self.sld_1 = wx.Slider(panel, value=10, minValue=1, maxValue=100,
-                             style=wx.SL_HORIZONTAL | wx.SL_LABELS)
+        self.sld_1 = wx.Slider(panel, value=33, minValue=1, maxValue=100,
+                             style=wx.SL_VERTICAL | wx.SL_LABELS)
 
         self.but_r.Bind(wx.EVT_RADIOBUTTON, self.OnReal)
         self.but_d.Bind(wx.EVT_RADIOBUTTON, self.OnDbg)
@@ -42,7 +42,7 @@ class MyForm(wx.Frame):
         sizer_but.Add(self.but_t1)
         sizer_but.Add(self.but_t2)
         sizer_but.Add(self.but_t3)
-        sizer_but.Add(wx.StaticText(panel, label='THR1:'))
+        sizer_but.Add(wx.StaticText(panel, label='S:'))
         sizer_but.Add(self.sld_1)
         sizer_cam.Add(self.camera, 10, wx.ALL|wx.EXPAND, border=0)
         sizer_pan.Add(sizer_cam, 1, wx.ALL|wx.EXPAND, border=0)
@@ -73,7 +73,7 @@ class MyForm(wx.Frame):
         self.camera.SetThresholdType(3)
 
     def OnSliderScroll(self, e):
-        val = self.sld_1.GetValue()
+        self.camera.SetSigma(self.sld_1.GetValue())
 
 
 

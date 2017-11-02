@@ -14,7 +14,7 @@ CameraEvent, EVT_CAMERA_EVENT = wx.lib.newevent.NewEvent()
 RedrawEvent, EVT_RDR_EVENT = wx.lib.newevent.NewEvent()
 
 class StreamClientThread(threading.Thread):
-    def __init__(self, wnd, url, proxysetting, thr_type=1):
+    def __init__(self, wnd, url, proxysetting, thr_type=1, sigma=0.33):
         threading.Thread.__init__(self)
         self.__lock=threading.Lock()
         self.wnd=wnd
@@ -28,10 +28,15 @@ class StreamClientThread(threading.Thread):
         self.bmp = None
         self.bmp_c = None
         self.thr_type = thr_type  # static
+        self.sigma = sigma
+
         self.setDaemon(1)
 
     def SetThresholdType(self, tt) :
         self.thr_type = tt
+
+    def SetSigma(self, sigma) :
+        self.sigma = sigma
 
     def stop(self) : self.__stop=True
     def lock(self) : self.__lock.acquire()
@@ -79,17 +84,17 @@ class StreamClientThread(threading.Thread):
             low_thresh = 0.5 * high_thresh
         elif self.thr_type == 3:
             # auto canny
-            sigma = 0.33
             v = np.median(gray)
             # apply automatic Canny edge detection using the computed median
-            low_thresh = int(max(0, (1.0 - sigma) * v))
-            high_thresh = int(min(255, (1.0 + sigma) * v))
+            low_thresh = int(max(0, (1.0 - self.sigma) * v))
+            high_thresh = int(min(255, (1.0 + self.sigma) * v))
 
-        print("Thresholds %s : %s %s" % (self.thr_type, low_thresh, high_thresh))
+        print("Thresholds %s (%s): %s %s" % (self.thr_type, self.sigma, low_thresh, high_thresh))
 
         #gray = cv2.bilateralFilter(gray, 11, 17, 17) #?
         #edges = cv2.Canny(gray, 50, 150, apertureSize=3)
-        edges = cv2.Canny(gray, low_thresh, high_thresh, apertureSize=3)
+        # apperture size 1, 3, 5, or 7
+        edges = cv2.Canny(gray, low_thresh, high_thresh, apertureSize=3, L2gradient=False)
         #edges = cv2.Canny(gray, 80, 120)
         #edges = cv2.Canny(gray, 30, 200)
 
@@ -292,6 +297,7 @@ class CameraPanel(wx.Window):
 
         self.thr_type = 1  # static
         self.streamthread = None
+        self.sigma = 0.33
 
         #self.SetSize(self.imgSizer)
         #self.pnl.SetSizer(self.vbox)
@@ -302,6 +308,12 @@ class CameraPanel(wx.Window):
         self.thr_type = tt
         if self.streamthread is not None :
             self.streamthread.SetThresholdType(self.thr_type)
+
+    def SetSigma(self, sigma) :
+        self.sigma = sigma/100.0
+        if self.streamthread is not None :
+            self.streamthread.SetSigma(self.sigma)
+
 
     def SetSrcType(self, st):
         self.isDebug = st==2
@@ -354,4 +366,5 @@ class CameraPanel(wx.Window):
             else :
                 self.streamthread =StreamClientThread(self, 'http://192.168.1.120:8080/?action=stream', None)
             self.streamthread.SetThresholdType(self.thr_type)
+            self.streamthread.SetSigma(self.sigma)
             self.streamthread.start()
