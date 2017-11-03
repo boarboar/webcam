@@ -14,7 +14,7 @@ CameraEvent, EVT_CAMERA_EVENT = wx.lib.newevent.NewEvent()
 RedrawEvent, EVT_RDR_EVENT = wx.lib.newevent.NewEvent()
 
 class StreamClientThread(threading.Thread):
-    def __init__(self, wnd, url, proxysetting, thr_type=1, sigma=0.33):
+    def __init__(self, wnd, url, proxysetting, thr_type=1, sigma=0.5):
         threading.Thread.__init__(self)
         self.__lock=threading.Lock()
         self.wnd=wnd
@@ -31,9 +31,9 @@ class StreamClientThread(threading.Thread):
         self.sigma = sigma
         self.lines_rho=1
         self.lines_phi_div=180
-        self.lines_threshold = 60
-        self.lines_minLineLength = 40
-        self.lines_maxLineGap = 8
+        self.lines_threshold = 100
+        self.lines_minLineLength = 56
+        self.lines_maxLineGap = 100
 
         self.setDaemon(1)
 
