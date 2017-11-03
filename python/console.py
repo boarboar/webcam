@@ -16,6 +16,16 @@ class MyForm(wx.Frame):
         self.but_t3 = wx.RadioButton(panel, wx.ID_ANY, "Auto3")
         self.sld_1 = wx.Slider(panel, value=33, minValue=1, maxValue=100,
                              style=wx.SL_VERTICAL | wx.SL_LABELS)
+        self.sld_line_rho = wx.Slider(panel, value=1, minValue=1, maxValue=10,
+                               style=wx.SL_VERTICAL | wx.SL_LABELS)
+        self.sld_line_phi_div = wx.Slider(panel, value=180, minValue=1, maxValue=180,
+                                      style=wx.SL_VERTICAL | wx.SL_LABELS)
+        self.sld_line_thres = wx.Slider(panel, value=60, minValue=1, maxValue=100,
+                                          style=wx.SL_VERTICAL | wx.SL_LABELS)
+        self.sld_line_minLineLength = wx.Slider(panel, value=40, minValue=1, maxValue=200,
+                                        style=wx.SL_VERTICAL | wx.SL_LABELS)
+        self.sld_line_maxLineGap = wx.Slider(panel, value=8, minValue=1, maxValue=100,
+                                                style=wx.SL_VERTICAL | wx.SL_LABELS)
 
         self.but_r.Bind(wx.EVT_RADIOBUTTON, self.OnReal)
         self.but_d.Bind(wx.EVT_RADIOBUTTON, self.OnDbg)
@@ -23,6 +33,11 @@ class MyForm(wx.Frame):
         self.but_t2.Bind(wx.EVT_RADIOBUTTON, self.OnSetT2)
         self.but_t3.Bind(wx.EVT_RADIOBUTTON, self.OnSetT3)
         self.sld_1.Bind(wx.EVT_SLIDER, self.OnSliderScroll)
+        self.sld_line_rho.Bind(wx.EVT_SLIDER, self.OnSliderScroll_Line_Rho)
+        self.sld_line_phi_div.Bind(wx.EVT_SLIDER, self.OnSliderScroll_Line_PhiDiv)
+        self.sld_line_thres.Bind(wx.EVT_SLIDER, self.OnSliderScroll_Line_Thres)
+        self.sld_line_minLineLength.Bind(wx.EVT_SLIDER, self.OnSliderScroll_Line_minLineLength)
+        self.sld_line_maxLineGap.Bind(wx.EVT_SLIDER, self.OnSliderScroll_Line_maxLineGap)
 
         self.layout(panel)
 
@@ -44,6 +59,17 @@ class MyForm(wx.Frame):
         sizer_but.Add(self.but_t3)
         sizer_but.Add(wx.StaticText(panel, label='S:'))
         sizer_but.Add(self.sld_1)
+        sizer_but.Add(wx.StaticText(panel, label='Rho:'))
+        sizer_but.Add(self.sld_line_rho)
+        sizer_but.Add(wx.StaticText(panel, label='PhiD:'))
+        sizer_but.Add(self.sld_line_phi_div)
+        sizer_but.Add(wx.StaticText(panel, label='LineTh:'))
+        sizer_but.Add(self.sld_line_thres)
+        sizer_but.Add(wx.StaticText(panel, label='MinLLen:'))
+        sizer_but.Add(self.sld_line_minLineLength)
+        sizer_but.Add(wx.StaticText(panel, label='MaxLGap:'))
+        sizer_but.Add(self.sld_line_maxLineGap)
+
         sizer_cam.Add(self.camera, 10, wx.ALL|wx.EXPAND, border=0)
         sizer_pan.Add(sizer_cam, 1, wx.ALL|wx.EXPAND, border=0)
         sizer_pan.Add(sizer_but, 0, wx.ALL | wx.EXPAND)
@@ -75,7 +101,20 @@ class MyForm(wx.Frame):
     def OnSliderScroll(self, e):
         self.camera.SetSigma(self.sld_1.GetValue())
 
+    def OnSliderScroll_Line_Rho(self, e):
+        self.camera.SetLinesRho(self.sld_line_rho.GetValue())
 
+    def OnSliderScroll_Line_PhiDiv(self, e):
+        self.camera.SetLinesPhiDiv(self.sld_line_phi_div.GetValue())
+
+    def OnSliderScroll_Line_Thres(self, e):
+        self.camera.SetLinesThres(self.sld_line_thres.GetValue())
+
+    def OnSliderScroll_Line_minLineLength(self, e):
+        self.camera.SetLinesMinLineLength(self.sld_line_minLineLength.GetValue())
+
+    def OnSliderScroll_Line_maxLineGap(self, e):
+        self.camera.SetLinesMaxLineGap(self.sld_line_maxLineGap.GetValue())
 
 
 # Run the program

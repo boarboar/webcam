@@ -29,6 +29,11 @@ class StreamClientThread(threading.Thread):
         self.bmp_c = None
         self.thr_type = thr_type  # static
         self.sigma = sigma
+        self.lines_rho=1
+        self.lines_phi_div=180
+        self.lines_threshold = 60
+        self.lines_minLineLength = 40
+        self.lines_maxLineGap = 8
 
         self.setDaemon(1)
 
@@ -37,6 +42,21 @@ class StreamClientThread(threading.Thread):
 
     def SetSigma(self, sigma) :
         self.sigma = sigma
+
+    def SetLinesRho(self, rho):
+        self.lines_rho = rho
+
+    def SetLinesPhiDiv(self, phi_div):
+        self.lines_phi_div = phi_div
+
+    def SetLinesThres(self, threshold):
+        self.lines_threshold = threshold
+
+    def SetLinesMinLineLength(self, minLineLength):
+        self.lines_minLineLength = minLineLength
+
+    def SetLinesMaxLineGap(self, maxLineGap):
+        self.lines_maxLineGap = maxLineGap
 
     def stop(self) : self.__stop=True
     def lock(self) : self.__lock.acquire()
@@ -89,7 +109,9 @@ class StreamClientThread(threading.Thread):
             low_thresh = int(max(0, (1.0 - self.sigma) * v))
             high_thresh = int(min(255, (1.0 + self.sigma) * v))
 
-        print("Thresholds %s (%s): %s %s" % (self.thr_type, self.sigma, low_thresh, high_thresh))
+        print("Thresholds %s (%s): %s %s : %s %s %s %s %s" % (self.thr_type, self.sigma, low_thresh, high_thresh,
+                                                              self.lines_rho, self.lines_phi_div, self.lines_threshold,
+                                                              self.lines_minLineLength, self.lines_maxLineGap))
 
         #gray = cv2.bilateralFilter(gray, 11, 17, 17) #?
         #edges = cv2.Canny(gray, 50, 150, apertureSize=3)
@@ -100,8 +122,11 @@ class StreamClientThread(threading.Thread):
 
 
         #lines = cv2.HoughLinesP(edges, 1, np.pi / 2, 1, None, minLineLength, maxLineGap)
-        lines = cv2.HoughLinesP(edges, 1, np.pi / 180,
-                                threshold=60, minLineLength=40, maxLineGap=8)
+        #lines = cv2.HoughLinesP(edges, 1, np.pi / 180,
+        #                        threshold=60, minLineLength=40, maxLineGap=8)
+
+        lines = cv2.HoughLinesP(edges, self.lines_rho, np.pi / self.lines_phi_div,
+                                threshold=self.lines_threshold, minLineLength=self.lines_minLineLength, maxLineGap=self.lines_maxLineGap)
 
         if lines is None:
             return img, cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
@@ -298,6 +323,12 @@ class CameraPanel(wx.Window):
         self.thr_type = 1  # static
         self.streamthread = None
         self.sigma = 0.33
+        self.lines_rho = 1
+        self.lines_phi_div = 180
+        self.lines_threshold = 60
+        self.lines_minLineLength = 40
+        self.lines_maxLineGap = 8
+
 
         #self.SetSize(self.imgSizer)
         #self.pnl.SetSizer(self.vbox)
@@ -313,6 +344,31 @@ class CameraPanel(wx.Window):
         self.sigma = sigma/100.0
         if self.streamthread is not None :
             self.streamthread.SetSigma(self.sigma)
+
+    def SetLinesRho(self, rho) :
+        self.lines_rho = rho
+        if self.streamthread is not None :
+            self.streamthread.SetLinesRho(self.lines_rho)
+
+    def SetLinesPhiDiv(self, phi_div) :
+        self.lines_phi_div = phi_div
+        if self.streamthread is not None :
+            self.streamthread.SetLinesPhiDiv(self.lines_phi_div)
+
+    def SetLinesThres(self, threshold):
+        self.lines_threshold = threshold
+        if self.streamthread is not None:
+            self.streamthread.SetLinesThres(self.lines_threshold)
+
+    def SetLinesMinLineLength(self, minLineLength) :
+        self.lines_minLineLength = minLineLength
+        if self.streamthread is not None :
+            self.streamthread.SetLinesMinLineLength(self.lines_minLineLength)
+
+    def SetLinesMaxLineGap(self, maxLineGap) :
+        self.lines_maxLineGap = maxLineGap
+        if self.streamthread is not None :
+            self.streamthread.SetLinesMaxLineGap(self.lines_maxLineGap)
 
 
     def SetSrcType(self, st):
