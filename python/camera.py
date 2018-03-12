@@ -97,6 +97,7 @@ class StreamClientThread(threading.Thread):
         maxLineGap = 2
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        gray = cv2.medianBlur(gray, 7)
 
         low_thresh, high_thresh = 50, 150
         if self.thr_type == 2:
@@ -143,10 +144,10 @@ class StreamClientThread(threading.Thread):
             for x1, y1, x2, y2 in line:
                 cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 3)
 
-        for line in lines:
-            for x1, y1, x2, y2 in line:
-                if abs(y1-y2)>40 and abs(x1-x2)*100/abs(y1-y2)<10 and min(y1,y2)<y_lim_1 and max(y1,y2)>y_lim_0:  #5% inclination
-                    cv2.line(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
+        #for line in lines:
+        #    for x1, y1, x2, y2 in line:
+        #        if abs(y1-y2)>40 and abs(x1-x2)*100/abs(y1-y2)<10 and min(y1,y2)<y_lim_1 and max(y1,y2)>y_lim_0:  #5% inclination
+        #            cv2.line(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
 
 
         """
@@ -291,7 +292,7 @@ class CameraPanel(wx.Window):
     def __init__(self, parent):
         wx.Window.__init__(self, parent, wx.ID_ANY, style=wx.SIMPLE_BORDER, size=(640, 480))
 
-        self.isDebug = False
+        self.isDebug = True
 
         self.imgSizer = (480, 360)
         #self.imgSizer = (640, 480)
@@ -322,7 +323,7 @@ class CameraPanel(wx.Window):
 
         self.thr_type = 1  # static
         self.streamthread = None
-        self.sigma = 0.33
+        self.sigma = 0.2
         self.lines_rho = 1
         self.lines_phi_div = 180
         self.lines_threshold = 60
